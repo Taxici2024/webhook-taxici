@@ -1,0 +1,16 @@
+[
+  {
+    "origen": "zona 1",
+    "destino": "zona 2",
+    "taxi": 40,
+    "mototaxi": 30,
+    "moto_reparto": 35
+  },
+  {
+    "origen": "zona 1",
+    "destino": "zona 3",
+    "taxi": 45,
+    "mototaxi": 35,
+    "moto_reparto": 40
+  }
+]

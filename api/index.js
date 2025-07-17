@@ -1,100 +1,43 @@
-
-const express = require('express');
-const axios = require('axios');
+const express = require("express");
+const bodyParser = require("body-parser");
 const app = express();
-app.use(express.json());
-
-const VERIFY_TOKEN = 'taxci2024'; // Este debe coincidir con el token que pusiste en Meta
-
-// Ruta de verificación
-app.get('/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
-
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('✅ Webhook verificado correctamente');
-    res.status(200).send(challenge);
-  } else {
-    console.warn('❌ Error al verificar webhook');
-    res.sendStatus(403);
-  }
-});
-
-// Ruta para recibir mensajes reales y responder
-app.post('/webhook', async (req, res) => {
-  const entry = req.body.entry?.[0];
-  const message = entry?.changes?.[0]?.value?.messages?.[0];
-
-  if (message) {
-    const phoneNumberId = entry.changes[0].value.metadata.phone_number_id;
-    
-const express = require('express');
-const axios = require('axios');
-const bodyParser = require('body-parser');
-const app = express();
+const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
-// Tu token de verificación (elige uno y colócalo también en Meta Developers)
-const VERIFY_TOKEN = 'taxici_token_seguro';
+// Verificación del Webhook
+app.get("/webhook", (req, res) => {
+  const VERIFY_TOKEN = "taxici_token_123"; // <-- Usa el mismo token que escribiste en Meta Developers
 
-// Ruta para verificar el webhook (GET)
-app.get('/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
 
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('✅ Webhook verificado correctamente');
-    res.status(200).send(challenge);
-  } else {
-    console.warn('❌ Error al verificar webhook');
-    res.sendStatus(403);
-  }
-});
-
-// Ruta para recibir mensajes (POST)
-app.post('/webhook', async (req, res) => {
-  const entry = req.body.entry?.[0];
-  const message = entry?.changes?.[0]?.value?.messages?.[0];
-
-  if (message) {
-    const phoneNumberId = entry.changes[0].value.metadata.phone_number_id;
-    const from = message.from;
-    const text = message.text?.body || '';
-
-    console.log(`📩 Mensaje recibido: ${text} de ${from}`);
-
-    // Pega aquí tu token real de acceso desde Meta (sin espacios ni saltos)
-    const token = '';
-
-    try {
-      await axios.post(EAA6dsGcGvsEBPETlOWOkjfqT4OIkrgpfuy1tInsrVzwQwCC536d5lgte9PiVsgg5T6TU2wiklwlF9GOIZC9M8BNrLvvZAYEzejibcRyUDPpMFC68lzwdWMUD6vY6WEplAHOHxliW6WFkknIMdYGF5Ch0y9OGZAJFD7mYKHH2Fw9IynwEIKwIvEsVffNYzfpt4d6wGP7L8aFApMXI0z0oVCBqZCl7kRR0U4U4R9ZACZCNPuZCLGx
-        `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
-        {
-          messaging_product: 'whatsapp',
-          to: from,
-          text: { body: 'Hola 👋, soy tu asistente de Taxi. ¿Deseas pedir un viaje, mototaxi o reparto?' }
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      console.log('✅ Respuesta enviada');
-    } catch (error) {
-      console.error('❌ Error al enviar respuesta:', error.response?.data || error.message);
+  if (mode && token) {
+    if (mode === "subscribe" && token === VERIFY_TOKEN) {
+      console.log("WEBHOOK VERIFICADO EXITOSAMENTE");
+      res.status(200).send(challenge);
+    } else {
+      res.sendStatus(403);
     }
   }
-
-  res.sendStatus(200);
 });
 
-// Iniciar servidor local (solo útil si lo pruebas con Ngrok)
-const PORT = process.env.PORT || 3000;
+// Manejo de mensajes entrantes
+app.post("/webhook", (req, res) => {
+  const body = req.body;
+
+  console.log("🔔 MENSAJE RECIBIDO:");
+  console.dir(body, { depth: null });
+
+  if (body.object) {
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(404);
+  }
+});
+
+// Servidor en Vercel (sin necesidad de escuchar puerto si estás en Vercel)
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor webhook escuchando en http://localhost:${PORT}`);
+  console.log("Servidor webhook escuchando en el puerto", PORT);
 });

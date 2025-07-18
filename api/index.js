@@ -6,8 +6,8 @@ const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
-const VERIFY_TOKEN = "taxici_token_123"; // Debe coincidir con el de Meta
-const ACCESS_TOKEN = ""; // 👈 Reemplaza"EAA6dsGcGvsEBPEZCBDJBEt3Q0w4U7IJHnUZCveGTA5MvWRsiG9GlvkUNNipIyFLfTogrG8jBlHn3mNGJEdlwvZBARzbGsn7dZAC1ZAekgf2EWuLXPMUpmSmchL5imLsvsd9r0ppsZAZCx6kAig2bSU6gnsLuBSPHjdp7MZCLCAg2wdD9x9KiEvmaqkLugj2eSZAuEQqnYzNmwmgG6BonZCKnNBt0vVMKqRtHiGTaC7IwZDZD" esto con tu token real
+const VERIFY_TOKEN = "taxici_token_123"; // Debe coincidir con el token de verificación de Meta
+const ACCESS_TOKEN = "EAA6dsGcGvsEBPFYQQgXDR0wkyIQ7pGVxsEZA0bZBVPvKJT8ucZA5rSc1WeSeedrZAbZAuOv9klpG9zEFEJhSkMFYTBCuKadjSN7QIvdGz9ZBiWzVB9m9dVtvkUi0EU4BQMSfSZCTq9Pbd5EjO1kZBmPjiqcnuMhfyjNbHBpeOJ3fKis9pwRYni4WVGTObfGayja0MQ4PfiY2uRUxF6WLoJdsoeLqiVSmISigsKHL"; // 👈 Reemplaza todo esto con tu token real de acceso
 
 // Verificación del Webhook
 app.get("/webhook", (req, res) => {
@@ -42,16 +42,20 @@ app.post("/webhook", async (req, res) => {
       console.log(`📨 Mensaje de ${from}: ${msg_body}`);
 
       // Enviar respuesta automática
-      await axios.post(`https://graph.facebook.com/v18.0/${phone_number_id}/messages`, {
-        messaging_product: "whatsapp",
-        to: from,
-        text: { body: "Hola 👋, soy tu asistente de Taxi. ¿Qué deseas solicitar?" }
-      }, {
-        headers: {
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-          "Content-Type": "application/json"
+      await axios.post(
+        `https://graph.facebook.com/v18.0/${phone_number_id}/messages`,
+        {
+          messaging_product: "whatsapp",
+          to: from,
+          text: { body: "Hola 👋, soy tu asistente de Taxi. ¿Qué deseas solicitar?" }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${ACCESS_TOKEN}`,
+            "Content-Type": "application/json"
+          }
         }
-      });
+      );
 
       console.log("✅ Respuesta enviada");
     }

@@ -1,71 +1,85 @@
 const express = require("express");
-const axios = require("axios");
 const bodyParser = require("body-parser");
+const axios = require("axios");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+"
 
-const VERIFY_TOKEN = "taxici_token_123"; // Debe coincidir con el token de verificación de Meta
-const ACCESS_TOKEN = "EAA6dsGcGvsEBPNoYVAHnE5rGMxZCr94JIFnIZA0pnErDc6NbyEnkaOgwfeIfLwHmjjkhxMq2lXXwrrSwZBYZCyE4t3ksYvX9nxF75fZAanS4UQ04owBZCsuACXP3JTp7rw2g74ZCJjYbk13xPpXXtZAtWPaWZCgLv0cW53MwFgrKKB5OgNfywvvHB8YdPTwuQSgXNKKZAQTN1RZBGEwGJZAPEP8gLZBIj4zZAo44kF08WZA"; // 👈 Reemplaza todo esto con tu token real de acceso
+// Token de verificación (el mismo que usaste en Meta)
+const VERIFY_TOKEN = "taxici_token_123";
 
-// Verificación del Webhook
+// Token de acceso temporal (de tu app en Meta Developers)
+const ACCESS_TOKEN = 
+// ✅ Ruta GET para verificar el webhook con Meta
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
+  const token = req.query["hub.verify_token"];const ACCESS_TOKEN = "EAA6dsGcGvsEBPLuQ2Wn7PJcNqnhKZBfzHetZCF22AOtZBCGkJp0O51YYHK712if50X8GhVcazyRNTqQ3b8409B4a70l49ZBVdU2vQu8nVYmqjfhMLuvJnVXYZA6y3uEjg2JjVOttU4oHF8YNaN1lw10R3CDCwayRJ4xwulfpzRZCEfchJSyBtl6RZAaUZAZBkZAi3dMLSZB7ReZAfVZAh5eoZA3ww7E24zYvFgq3N5w4Ds";
+
   const challenge = req.query["hub.challenge"];
 
   if (mode && token) {
     if (mode === "subscribe" && token === VERIFY_TOKEN) {
-      console.log("✅ WEBHOOK VERIFICADO");
-      return res.status(200).send(challenge);
+      console.log("✅ WEBHOOK VERIFICADO EXITOSAMENTE");
+      res.status(200).send(challenge);
     } else {
-      return res.sendStatus(403);
+      res.sendStatus(403);
     }
   }
 });
 
-// Manejo de mensajes entrantes
+// ✅ Ruta POST para recibir y responder mensajes
 app.post("/webhook", async (req, res) => {
   const body = req.body;
 
-  console.log("🔔 MENSAJE RECIBIDO:");
-  console.dir(body, { depth: null });
+  // Verifica que sea un mensaje real de WhatsApp
+  if (body.object && body.entry && body.entry[0].changes) {
+    const changes = body.entry[0].changes[0];
+    const value = changes.value;
 
-  if (body.object) {
-    const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-    const phone_number_id = body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
-    const from = message?.from;
-    const msg_body = message?.text?.body;
+    if (
+      value.messages &&
+      value.messages[0] &&
+      value.messages[0].from &&
+      value.messages[0].text
+    ) {
+      const phoneNumberId = value.metadata.phone_number_id;
+      const from = value.messages[0].from; // Número del usuario
+      const msgBody = value.messages[0].text.body; // Mensaje del usuario
 
-    if (message && from) {
-      console.log(`📨 Mensaje de ${from}: ${msg_body}`);
+      console.log("📨 Mensaje recibido de:", from);
+      console.log("📄 Contenido:", msgBody);
 
-      // Enviar respuesta automática
-      await axios.post(
-        `https://graph.facebook.com/v18.0/${phone_number_id}/messages`,
-        {
-          messaging_product: "whatsapp",
-          to: from,
-          text: { body: "Hola 👋, soy tu asistente de Taxi. ¿Qué deseas solicitar?" }
-        },
-        {
+      // ✅ Enviar respuesta automática
+      try {
+        await axios({
+          method: "POST",
+          url: `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${ACCESS_TOKEN}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+          },
+          data: {
+            messaging_product: "whatsapp",
+            to: from,
+            text: { body: "Hola 👋, gracias por contactar a TaxCi. ¿Cómo podemos ayudarte?" },
+          },
+        });
 
-      console.log("✅ Respuesta enviada");
+        console.log("✅ Respuesta enviada al usuario.");
+      } catch (error) {
+        console.error("❌ Error al enviar respuesta:", error.response?.data || error.message);
+      }
     }
-
-    return res.sendStatus(200);
+    res.sendStatus(200);
   } else {
-    return res.sendStatus(404);
+    res.sendStatus(404);
   }
 });
 
+// Solo necesario si corres localmente, Vercel no usa este puerto directamente
 app.listen(PORT, () => {
   console.log("🚀 Servidor webhook escuchando en el puerto", PORT);
 });

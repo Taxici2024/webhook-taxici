@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 
 const VERIFY_TOKEN = "taxici_token_123"; // Debe coincidir con el token de verificación de Meta
-const ACCESS_TOKEN = "EAA6dsGcGvsEBPFYQQgXDR0wkyIQ7pGVxsEZA0bZBVPvKJT8ucZA5rSc1WeSeedrZAbZAuOv9klpG9zEFEJhSkMFYTBCuKadjSN7QIvdGz9ZBiWzVB9m9dVtvkUi0EU4BQMSfSZCTq9Pbd5EjO1kZBmPjiqcnuMhfyjNbHBpeOJ3fKis9pwRYni4WVGTObfGayja0MQ4PfiY2uRUxF6WLoJdsoeLqiVSmISigsKHL"; // 👈 Reemplaza todo esto con tu token real de acceso
+const ACCESS_TOKEN = "EAA6dsGcGvsEBPNoYVAHnE5rGMxZCr94JIFnIZA0pnErDc6NbyEnkaOgwfeIfLwHmjjkhxMq2lXXwrrSwZBYZCyE4t3ksYvX9nxF75fZAanS4UQ04owBZCsuACXP3JTp7rw2g74ZCJjYbk13xPpXXtZAtWPaWZCgLv0cW53MwFgrKKB5OgNfywvvHB8YdPTwuQSgXNKKZAQTN1RZBGEwGJZAPEP8gLZBIj4zZAo44kF08WZA"; // 👈 Reemplaza todo esto con tu token real de acceso
 
 // Verificación del Webhook
 app.get("/webhook", (req, res) => {

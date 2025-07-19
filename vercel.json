@@ -7,7 +7,7 @@
     {
       "src": "/webhook",
       "methods": ["GET", "POST"],
-      "dest": "index.js"
+      "dest": "/index.js"
     }
   ]
 }

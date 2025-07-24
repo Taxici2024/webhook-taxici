@@ -1,5 +1,5 @@
 module.exports = (req, res) => {
-  const VERIFY_TOKEN = "taxici_token_2025";
+  const VERIFY_TOKEN = "taxici_token_2025_2";
 
   if (req.method === "GET") {
     const mode = req.query["hub.mode"];

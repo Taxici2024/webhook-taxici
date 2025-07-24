@@ -1,4 +1,4 @@
-module.exports = (req, res) => {
+export default function handler(req, res) {
   const VERIFY_TOKEN = "taxici_token_2025_2";
 
   if (req.method === "GET") {
@@ -8,20 +8,16 @@ module.exports = (req, res) => {
 
     if (mode && token) {
       if (mode === "subscribe" && token === VERIFY_TOKEN) {
-        console.log("✅ WEBHOOK VERIFICADO");
+        console.log("WEBHOOK_VERIFIED");
         res.status(200).send(challenge);
       } else {
-        console.log("❌ TOKEN INVÁLIDO");
         res.sendStatus(403);
       }
-    } else {
-      res.sendStatus(400);
     }
   } else if (req.method === "POST") {
-    // Aquí recibirás los mensajes reales de WhatsApp
-    console.log("📩 Evento recibido:", req.body);
+    console.log("Mensaje recibido:", JSON.stringify(req.body, null, 2));
     res.sendStatus(200);
   } else {
-    res.sendStatus(405); // Method Not Allowed
+    res.sendStatus(405); // Método no permitido
   }
-};
+}

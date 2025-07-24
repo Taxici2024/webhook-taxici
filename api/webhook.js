@@ -1,3 +1,5 @@
+
+
 module.exports = async (req, res) => {
   const VERIFY_TOKEN = "taxici_token_2025_2";
 
@@ -6,21 +8,16 @@ module.exports = async (req, res) => {
     const token = req.query["hub.verify_token"];
     const challenge = req.query["hub.challenge"];
 
-    if (mode && token) {
-      if (mode === "subscribe" && token === VERIFY_TOKEN) {
-        console.log("WEBHOOK_VERIFICADO");
-        return res.status(200).send(challenge);
-      } else {
-        return res.status(403).send("Token inválido");
-      }
+    if (mode && token && mode === "subscribe" && token === VERIFY_TOKEN) {
+      console.log("WEBHOOK_VERIFIED");
+      res.status(200).send(challenge);
+    } else {
+      res.status(403).send("Token inválido");
     }
-    return res.status(400).send("Faltan parámetros");
-  }
-
-  if (req.method === "POST") {
+  } else if (req.method === "POST") {
     console.log("Mensaje recibido:", JSON.stringify(req.body, null, 2));
-    return res.status(200).send("Mensaje recibido");
+    res.sendStatus(200);
+  } else {
+    res.status(405).send("Método no permitido");
   }
-
-  return res.status(405).send("Método no permitido");
 };

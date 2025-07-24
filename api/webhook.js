@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const VERIFY_TOKEN = "taxici_token_2025_2";
 
   if (req.method === "GET") {
@@ -9,15 +9,19 @@ export default function handler(req, res) {
     if (mode && token) {
       if (mode === "subscribe" && token === VERIFY_TOKEN) {
         console.log("WEBHOOK_VERIFIED");
-        res.status(200).send(challenge);
+        return res.status(200).send(challenge);
       } else {
-        res.sendStatus(403);
+        return res.sendStatus(403);
       }
+    } else {
+      return res.sendStatus(400);
     }
-  } else if (req.method === "POST") {
-    console.log("Mensaje recibido:", JSON.stringify(req.body, null, 2));
-    res.sendStatus(200);
-  } else {
-    res.sendStatus(405); // Método no permitido
   }
+
+  if (req.method === "POST") {
+    console.log("Mensaje recibido:", JSON.stringify(req.body, null, 2));
+    return res.sendStatus(200);
+  }
+
+  return res.sendStatus(405); // Método no permitido
 }

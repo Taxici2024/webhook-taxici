@@ -1,29 +1,39 @@
+// ✅ ESTE ES EL CORRECTO: api/webhook.js
+// El archivo webhook.js debe estar dentro de la carpeta "api"
 
-export default async function handler(req, res) {
-  const VERIFY_TOKEN = "taxici_token_2025_2";
+const express = require('express');
+const app = express();
+app.use(express.json());
 
-  if (req.method === "GET") {
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
+// Ruta para verificación de Webhook (GET)
+app.get('/webhook', (req, res) => {
+  const VERIFY_TOKEN = 'taxici_token_2025_2';
 
-    if (mode && token) {
-      if (mode === "subscribe" && token === VERIFY_TOKEN) {
-        console.log("WEBHOOK_VERIFIED");
-        res.status(200).send(challenge);
-        return;
-      } else {
-        return res.status(403).send("Token inválido");
-      }
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode && token) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('WEBHOOK_VERIFICADO');
+      res.status(200).send(challenge);
     } else {
-      return res.status(400).send("Faltan parámetros");
+      res.sendStatus(403);
     }
   }
+});
 
-  if (req.method === "POST") {
-    console.log("Mensaje recibido:", JSON.stringify(req.body, null, 2));
-    return res.status(200).send("Mensaje procesado");
+// Ruta para recibir mensajes (POST)
+app.post('/webhook', (req, res) => {
+  const body = req.body;
+
+  console.log('Webhook recibido:', JSON.stringify(body, null, 2));
+
+  if (body.object) {
+    res.status(200).send('EVENT_RECEIVED');
+  } else {
+    res.sendStatus(404);
   }
+});
 
-  return res.status(405).send("Método no permitido");
-}
+module.exports = app;

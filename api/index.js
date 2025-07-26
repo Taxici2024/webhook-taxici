@@ -1,14 +1,10 @@
-// ✅ ESTE ES EL CORRECTO: api/webhook.js
-// El archivo webhook.js debe estar dentro de la carpeta "api"
-
 const express = require('express');
 const app = express();
 app.use(express.json());
 
-// Ruta para verificación de Webhook (GET)
-app.get('/webhook', (req, res) => {
-  const VERIFY_TOKEN = 'taxici_token_2025_2';
+const VERIFY_TOKEN = 'taxici_token_2025_2';
 
+app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
@@ -20,14 +16,14 @@ app.get('/webhook', (req, res) => {
     } else {
       res.sendStatus(403);
     }
+  } else {
+    res.sendStatus(400);
   }
 });
 
-// Ruta para recibir mensajes (POST)
 app.post('/webhook', (req, res) => {
   const body = req.body;
-
-  console.log('Webhook recibido:', JSON.stringify(body, null, 2));
+  console.log('Mensaje recibido:', JSON.stringify(body, null, 2));
 
   if (body.object) {
     res.status(200).send('EVENT_RECEIVED');

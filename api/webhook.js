@@ -10,16 +10,17 @@ export default async function handler(req, res) {
 
     if (mode && token === VERIFY_TOKEN && mode === 'subscribe') {
       console.log('WEBHOOK_VERIFICADO');
-      res.status(200).send(challenge);
+      return res.status(200).send(challenge);
     } else {
-      res.sendStatus(403);
+      return res.sendStatus(403);
     }
-  } else if (req.method === 'POST') {
-    const body = req.body;
-    console.log('MENSAJE ENTRANTE:', JSON.stringify(body, null, 2));
+  }
 
-    if (body.object) {
-      const entry = body.entry?.[0];
+  if (req.method === 'POST') {
+    console.log('MENSAJE ENTRANTE:', JSON.stringify(req.body, null, 2));
+
+    if (req.body.object) {
+      const entry = req.body.entry?.[0];
       const changes = entry?.changes?.[0];
       const message = changes?.value?.messages?.[0];
       const from = message?.from;
@@ -42,11 +43,11 @@ export default async function handler(req, res) {
         });
       }
 
-      res.status(200).send('EVENT_RECEIVED');
-    } else {
-      res.sendStatus(404);
+      return res.status(200).send('EVENT_RECEIVED');
     }
-  } else {
-    res.sendStatus(405);
+
+    return res.sendStatus(404);
   }
+
+  return res.sendStatus(405);
 }

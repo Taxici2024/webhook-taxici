@@ -1,8 +1,8 @@
 {
   "name": "webhook-taxici",
   "version": "1.0.0",
-  "main": "index.js",
   "type": "module",
+  "main": "api/webhook.js",
   "scripts": {
     "start": "node api/webhook.js"
   },

@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 
 module.exports = async function handler(req, res) {
   const VERIFY_TOKEN = 'taxici_token_2025_2';
-  const ACCESS_TOKEN = 'EAA6dsGcGvsEBPCBFsg2dJGKXE01pqa4779RHlDHNWZADOq4b4Wg0Q5sJoizqZAINjvuPa4nAWeakZC2aGZBWFDzoypSbXRNGEBN47dZAkLuZBNivDwPAmK9R2TxkeR9ZAOqTVttZALOZBeObOlNVojCzGIZBM4Y3T9DRZCHw8J1BmSWF0Osg2OoOFkLpJM6bprUkZCzhdlGN0DTtPtvyDdhjok1jbxdc18HR4PckDDBzpW3QWoDwgwZDZD';
+  const ACCESS_TOKEN = 'EAA6dsGcGvsEBPPoakLAp1Fh5gYZCutT5ZC7rMhwZAEHl1CPCKZC6JmXIxpyq1uEb95nlUJAXlHBYKZC1YTZA06SjDSAS0SCn9HzljyzSeuIZCt35rCEg4ZAKSlJgXtwH3XZBl5m6XoDIUqLbINDWyTSTh5dfrVKFZCjuTlZCXAUuH71sGNDi6wwsF2JdTlOaFzuZCgKdFmkdeihZCCx0j4BGgAcuruZAAjdyOCKfgesMgee6mn4eGawQZDZD';
   const PHONE_NUMBER_ID = '4114030642249409';
 
   if (req.method === 'GET') {
@@ -48,13 +48,3 @@ module.exports = async function handler(req, res) {
 
   return res.sendStatus(405);
 };
-```
-
----
-
-✅ Una vez pegado todo esto en sus respectivos archivos, abre la terminal y ejecuta:
-
-```bash
-git add .
-git commit -m "Migración a node-fetch v2 para compatibilidad con Vercel"
-git push origin main

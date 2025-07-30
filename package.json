@@ -1,12 +1,11 @@
 {
   "name": "webhook-taxici",
   "version": "1.0.0",
-  "type": "module",
   "main": "api/webhook.js",
   "scripts": {
     "start": "node api/webhook.js"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^2.6.7"
   }
 }

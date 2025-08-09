@@ -1,84 +1,196 @@
-const fetch = require('node-fetch');
 
-// Store temporal de estados por número (en memoria)
-const userStates = {};
+// TAXICI – Webhook con botones e intents (Node 18+, fetch nativo)
 
-module.exports = async function handler(req, res) {
-  const VERIFY_TOKEN   = 'taxici_token_2025_2';
-  const ACCESS_TOKEN   = 'EAA6dsGcGvsEBPCKXr3rXDscr1eIZBd3uebCS0Y5vZA1F2e7omGCZC04HQaBaKZCZAU5vysqQGjSZBET4PA44s6VjJ159Dewn1kAEMCxY0kdRZCAnxXc3lVx8CAcg7ZAzxmtAacLKXKXm2JFPo9k0OSLiF48kQ7A0bWhfQ9RZC6bjNG2AVNhZC2BcnZCFfRkXjTkvBFv6TNQFjAAGPUf5DZBQDbuibViYTP0EWnPEUhF5JvECLdAmDTUZD';
-  const PHONE_NUMBER_ID = '624199287454417';
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN; // p.ej. "taxici_token_2025_2"
+const WA_TOKEN = process.env.WHATSAPP_TOKEN;            // Token largo actual
 
-  try {
-    // VERIFICACIÓN DE WEBHOOK (GET)
-    if (req.method === 'GET') {
-      const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
-      if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-        return res.status(200).send(challenge);
-      }
-      return res.sendStatus(403);
-    }
+function parseUrl(req) {
+  const base = `http://${req.headers.host || 'localhost'}`;
+  return new URL(req.url, base);
+}
 
-    // MENSAJES ENTRANTES (POST)
-    if (req.method === 'POST') {
-      console.log('>>> BODY RECEIVED:', JSON.stringify(req.body, null, 2));
-      if (!req.body.object) return res.sendStatus(404);
+async function readJsonBody(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
+  const raw = await new Promise((resolve) => {
+    let data = '';
+    req.on('data', (c) => (data += c));
+    req.on('end', () => resolve(data));
+  });
+  try { return JSON.parse(raw || '{}'); } catch { return {}; }
+}
 
-      const entry   = req.body.entry?.[0];
-      const change  = entry?.changes?.[0];
-      const message = change?.value?.messages?.[0];
-      const from    = message?.from;
-      const text    = message?.text?.body?.trim();
-
-      let reply;
-      const state = userStates[from] || {};
-
-      if (!state.step) {
-        // Paso inicial
-        if (text.toLowerCase() === 'reservar') {
-          state.step = 'awaiting_pickup';
-          reply = '¡Perfecto! ¿Cuál es tu dirección de recogida?';
-        } else {
-          reply = 'Hola, soy tu asistente automático de TAXICI 🚖. Escribe "reservar" para pedir un taxi.';
-        }
-      } else if (state.step === 'awaiting_pickup') {
-        // Recogida recibida
-        state.pickup = text;
-        state.step = 'awaiting_destination';
-        reply = `Genial, recogida: ${text}.\nAhora dime, ¿a dónde te diriges?`;
-      } else if (state.step === 'awaiting_destination') {
-        // Destino recibido y confirmación
-        const pickup = state.pickup;
-        const destination = text;
-        reply = `Tu reserva está confirmada:\nRecogida: ${pickup}\nDestino: ${destination}\n\nUn taxi llegará en breve. ¡Gracias por usar TAXICI!`;
-        delete userStates[from];
-      }
-
-      if (state.step) {
-        userStates[from] = state;
-      }
-
-      // Enviar respuesta
-      await fetch(`https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: from,
-          text: { body: reply },
-        }),
-      });
-
-      console.log(`Responded to ${from}: "${reply}"`);
-      return res.status(200).send('EVENT_RECEIVED');
-    }
-
-    // Métodos no permitidos
-    return res.sendStatus(405);
-  } catch (err) {
-    console.error('‼️ ERROR IN HANDLER:', err);
-    return res.status(500).send('Server error');
+async function waPost(path, payload) {
+  const url = `https://graph.facebook.com/v21.0/${path}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${WA_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    console.error('WA error', res.status, t);
   }
-};
+  return res;
+}
+
+async function sendText(phoneNumberId, to, text) {
+  return waPost(`${phoneNumberId}/messages`, {
+    messaging_product: 'whatsapp',
+    to,
+    text: { body: text }
+  });
+}
+
+async function sendButtons(phoneNumberId, to) {
+  return waPost(`${phoneNumberId}/messages`, {
+    messaging_product: 'whatsapp',
+    to,
+    type: 'interactive',
+    interactive: {
+      type: 'button',
+      body: { text: '🚕 *TAXICI*\nElige una opción:' },
+      action: {
+        buttons: [
+          { type: 'reply', reply: { id: 'taxi_now', title: 'Pedir taxi' } },
+          { type: 'reply', reply: { id: 'reserve',  title: 'Reservar' } },
+          { type: 'reply', reply: { id: 'agent',    title: 'Agente' } }
+        ]
+      }
+    }
+  });
+}
+
+function parseTaxi(text) {
+  // Formato: TAXI: origen -> destino
+  const m = text.match(/^\s*TAXI\s*:\s*(.+?)\s*(?:->|→| a )\s*(.+)$/i);
+  if (!m) return null;
+  return { pickup: m[1].trim(), dest: m[2].trim() };
+}
+
+function parseReserva(text) {
+  // Formato: RESERVA: 2025-08-09 18:30 | origen -> destino
+  const m = text.match(/^\s*RESERVA\s*:\s*([^|]+?)\s*\|\s*(.+?)\s*(?:->|→| a )\s*(.+)$/i);
+  if (!m) return null;
+  return { when: m[1].trim(), pickup: m[2].trim(), dest: m[3].trim() };
+}
+
+function intentFromMessage(msg) {
+  const text = (
+    msg.text?.body ||
+    msg.button?.text ||
+    msg.interactive?.button_reply?.title ||
+    msg.interactive?.list_reply?.title ||
+    ''
+  ).trim();
+
+  const btnId = msg.interactive?.button_reply?.id;
+  if (btnId === 'taxi_now') return { type: 'TAXI_BUTTON' };
+  if (btnId === 'reserve')  return { type: 'RESERVA_BUTTON' };
+  if (btnId === 'agent')    return { type: 'AGENTE_BUTTON' };
+
+  if (/^\s*menu\s*$/i.test(text) || /^\s*hola\b/i.test(text)) return { type: 'MENU' };
+
+  const t = parseTaxi(text);
+  if (t) return { type: 'TAXI_TEXT', ...t };
+
+  const r = parseReserva(text);
+  if (r) return { type: 'RESERVA_TEXT', ...r };
+
+  return { type: 'UNKNOWN' };
+}
+
+export default async function handler(req, res) {
+  // Verificación GET + ping
+  if (req.method === 'GET') {
+    try {
+      const url = parseUrl(req);
+      const mode = url.searchParams.get('hub.mode');
+      const token = url.searchParams.get('hub.verify_token');
+      const challenge = url.searchParams.get('hub.challenge');
+      if (mode === 'subscribe' && token && challenge) {
+        return token === VERIFY_TOKEN ? res.status(200).send(challenge) : res.status(403).send('Token inválido');
+      }
+      return res.status(200).send('TAXICI webhook live');
+    } catch (e) {
+      console.error('GET error:', e);
+      return res.status(500).send('GET error');
+    }
+  }
+
+  // Recepción POST
+  if (req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      if (body.object !== 'whatsapp_business_account') return res.sendStatus(200);
+
+      const value = body.entry?.[0]?.changes?.[0]?.value;
+      const messages = value?.messages || [];
+      const phoneNumberId = value?.metadata?.phone_number_id;
+      if (!phoneNumberId) return res.sendStatus(200);
+
+      for (const msg of messages) {
+        const from = msg.from;
+        const intent = intentFromMessage(msg);
+
+        switch (intent.type) {
+          case 'MENU':
+            await sendButtons(phoneNumberId, from);
+            break;
+
+          case 'TAXI_BUTTON':
+            await sendText(
+              phoneNumberId,
+              from,
+              '🚕 Pide tu taxi en *un solo mensaje*:\n\nTAXI: [origen] -> [destino]\n\nEjemplo:\nTAXI: Av. Constitución 1200, Col. Centro -> Aeropuerto Monterrey\n\nOpcional: personas y referencia.'
+            );
+            break;
+
+          case 'RESERVA_BUTTON':
+            await sendText(
+              phoneNumberId,
+              from,
+              '🗓️ Haz tu reserva en *un solo mensaje*:\n\nRESERVA: AAAA-MM-DD HH:MM | [origen] -> [destino]\n\nEjemplo:\nRESERVA: 2025-08-10 07:30 | Calle 5 #321, Centro -> Terminal Ómnibus'
+            );
+            break;
+
+          case 'AGENTE_BUTTON':
+            await sendText(phoneNumberId, from, '👤 Un agente te atenderá en breve. Gracias.');
+            break;
+
+          case 'TAXI_TEXT': {
+            const { pickup, dest } = intent;
+            await sendText(
+              phoneNumberId,
+              from,
+              `✅ *Solicitud recibida*\nOrigen: ${pickup}\nDestino: ${dest}\n\nEn minutos un operador confirmará la unidad.`
+            );
+            break;
+          }
+
+          case 'RESERVA_TEXT': {
+            const { when, pickup, dest } = intent;
+            await sendText(
+              phoneNumberId,
+              from,
+              `✅ *Reserva registrada*\nFecha/hora: ${when}\nOrigen: ${pickup}\nDestino: ${dest}\n\nUn operador confirmará tu viaje.`
+            );
+            break;
+          }
+
+          default:
+            await sendButtons(phoneNumberId, from);
+        }
+      }
+
+      return res.sendStatus(200);
+    } catch (e) {
+      console.error('POST error:', e);
+      return res.sendStatus(500);
+    }
+  }
+
+  return res.status(405).send('Method Not Allowed');
+}

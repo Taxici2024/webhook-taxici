@@ -1,5 +1,5 @@
-
-// TAXICI – Webhook con botones e intents (Node 18+, fetch nativo)
+// TAXICI – Webhook con botones e intents (Node 18+, fetch nativo, Vercel)
+// Fix: sin res.sendStatus (usamos res.status(...).end())
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN; // p.ej. "taxici_token_2025_2"
 const WA_TOKEN = process.env.WHATSAPP_TOKEN;            // Token largo actual
@@ -20,7 +20,7 @@ async function readJsonBody(req) {
 }
 
 async function waPost(path, payload) {
-  const url = `https://graph.facebook.com/v21.0/${path}`;
+  const url = `https://graph.facebook.com/v23.0/${path}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -71,7 +71,7 @@ function parseTaxi(text) {
 }
 
 function parseReserva(text) {
-  // Formato: RESERVA: 2025-08-09 18:30 | origen -> destino
+  // Formato: RESERVA: AAAA-MM-DD HH:MM | origen -> destino
   const m = text.match(/^\s*RESERVA\s*:\s*([^|]+?)\s*\|\s*(.+?)\s*(?:->|→| a )\s*(.+)$/i);
   if (!m) return null;
   return { when: m[1].trim(), pickup: m[2].trim(), dest: m[3].trim() };
@@ -111,7 +111,8 @@ export default async function handler(req, res) {
       const token = url.searchParams.get('hub.verify_token');
       const challenge = url.searchParams.get('hub.challenge');
       if (mode === 'subscribe' && token && challenge) {
-        return token === VERIFY_TOKEN ? res.status(200).send(challenge) : res.status(403).send('Token inválido');
+        if (token === VERIFY_TOKEN) return res.status(200).send(challenge);
+        return res.status(403).send('Token inválido');
       }
       return res.status(200).send('TAXICI webhook live');
     } catch (e) {
@@ -124,12 +125,12 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const body = await readJsonBody(req);
-      if (body.object !== 'whatsapp_business_account') return res.sendStatus(200);
+      if (body.object !== 'whatsapp_business_account') return res.status(200).end();
 
       const value = body.entry?.[0]?.changes?.[0]?.value;
       const messages = value?.messages || [];
       const phoneNumberId = value?.metadata?.phone_number_id;
-      if (!phoneNumberId) return res.sendStatus(200);
+      if (!phoneNumberId) return res.status(200).end();
 
       for (const msg of messages) {
         const from = msg.from;
@@ -185,10 +186,10 @@ export default async function handler(req, res) {
         }
       }
 
-      return res.sendStatus(200);
+      return res.status(200).end();
     } catch (e) {
       console.error('POST error:', e);
-      return res.sendStatus(500);
+      return res.status(500).end();
     }
   }
 

@@ -1,11 +1,11 @@
 export default function handler(req, res) {
   if (req.method === 'GET') {
-    const VERIFY_TOKEN = 'taxici_token_2025_2'; // Token exacto
+    const VERIFY_TOKEN = process.env.VERIFY_TOKEN; // Usa variable del entorno
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    if (mode && token === VERIFY_TOKEN) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       console.log('✅ WEBHOOK VERIFICADO');
       return res.status(200).send(challenge);
     } else {
